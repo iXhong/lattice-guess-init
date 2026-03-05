@@ -7,10 +7,10 @@ time-major (n_time, n_boot) for clearer vectorized operations.
 from __future__ import annotations
 
 import warnings
-from typing import Any
+from typing import Any, Dict
 
 import numpy as np
-import lmfit
+from lmfit import Parameters, minimize
 
 from src.config import NUMBER_BOOTSTRAP, NUMBER_CONF
 
@@ -158,7 +158,7 @@ def _fit_log_linear_numpy(
 ) -> dict[str, Any] | None:
     t = time_values[interval].astype(float)
     logs = np.log(signal_time_boot[interval])  # 假设所有信号值 > 0
-    print(logs.shape)
+    # print(logs.shape)
     # y_mean = logs.mean(axis=1)
     # y_err = logs.var(axis=1, ddof=1)
     y_mean, y_err = compute_mean_and_err(logs.T)
@@ -171,7 +171,9 @@ def _fit_log_linear_numpy(
     w = 1.0 / y_err[valid]  # 权重 = 1/标准差
     slope, intercept = np.polyfit(x, y, deg=1, w=w)  # 线性拟合
     mass = -slope
-    log_amp = intercept + mass * nt_half
+    log_amp = (
+        intercept - mass * nt_half
+    )  # 注意这里应该是减去 mass * nt_half，因为 intercept = log_amp + mass * nt_half
     return {
         "interval": interval,
         "interval_start": int(interval[0]),
@@ -222,44 +224,49 @@ def refine_ground_with_lmfit(
     nt_half: int = 48,
 ) -> dict[str, Any]:
     """Refine one-state parameters on the selected interval using lmfit."""
-    try:
-        import lmfit
-    except ImportError as exc:  # pragma: no cover - environment dependent
-        raise RuntimeError("lmfit is required for nonlinear refinement") from exc
 
-    t = np.asarray(time_slices[fit_interval], dtype=float)
-    y = np.asarray(corr_mean[fit_interval], dtype=float)
-    sigma = np.asarray(corr_err[fit_interval], dtype=float)
-    sigma = np.where(
-        sigma > 0.0,
-        sigma,
-        np.nanmedian(sigma[sigma > 0.0]) if np.any(sigma > 0.0) else 1.0,
-    )
-    weights = 1.0 / sigma
+    # 1. 提取当前拟合区间的数据
+    t_fit = time_slices[fit_interval]
+    data_fit = corr_mean[fit_interval]
+    err_fit = corr_err[fit_interval]
 
-    model = lmfit.Model(one_state_cosh, independent_vars=["time_slices", "nt_half"])
-    params = lmfit.Parameters()
-    params.add(
-        "log_amp",
-        value=float(log_amp_init),
-        min=min(0.5 * log_amp_init, 2.0 * log_amp_init),
-        max=max(0.5 * log_amp_init, 2.0 * log_amp_init),
-    )
-    params.add(
-        "mass",
-        value=float(mass_init),
-        min=min(0.5 * mass_init, 2.0 * mass_init),
-        max=max(0.5 * mass_init, 2.0 * mass_init),
+    # 2. 定义残差函数 (包含误差权重)
+    def residual(params, t, data, err):
+        A = params["log_amp"].value
+        m = params["mass"].value
+
+        # 对应 C++ 中的 cosh_one 模型
+        # model = np.exp(A + m * (t - nt_half)) + np.exp(A - m * (t - nt_half))
+        model = one_state_cosh(t, A, m, nt_half)  # 使用之前定义的模型函数
+
+        # lmfit 默认对返回的数组求平方和。
+        # 返回 (数据 - 模型) / 误差 等价于 C++ 中的按方差加权的 \chi^2
+        return (data - model) / err
+
+    # 3. 设置参数与动态边界 (复刻 C++ 中的 [0.5 * val, 2 * val] 逻辑)
+    params = Parameters()
+    bounds_amp = sorted([0.5 * log_amp_init, 2 * log_amp_init])
+    bounds_mass = sorted([0.5 * mass_init, 2 * mass_init])
+
+    params.add("log_amp", value=log_amp_init, min=bounds_amp[0], max=bounds_amp[1])
+    params.add("mass", value=mass_init, min=bounds_mass[0], max=bounds_mass[1])
+
+    # 4. 执行 Levenberg-Marquardt 拟合
+    # 如果遇到病态问题，可以在 minimize 中加入 method='least_squares' 来使用更稳健的求解器
+    result = minimize(
+        residual,
+        params,
+        args=(t_fit, data_fit, err_fit),
+        method="leastsq",
     )
 
-    result = model.fit(
-        y, params, time_slices=t, nt_half=nt_half, weights=weights, nan_policy="omit"
-    )
+    # 5. 组装返回结果
     return {
         "log_amp": float(result.params["log_amp"].value),
         "mass": float(result.params["mass"].value),
         "fit_success": bool(result.success),
         "chisqr": float(result.chisqr),
+        "redchi": float(result.redchi),  # 额外返回约化卡方，便于评估拟合优度
     }
 
 
