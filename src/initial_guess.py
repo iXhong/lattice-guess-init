@@ -299,6 +299,7 @@ def excited_linear_seed_numpy(
     ground_log_amp: float,
     ground_mass: float,
     end_time_excited: int,
+    start_time_index: int = 4,
     nt_half: int = 48,
 ) -> dict[str, Any]:
     """Estimate excited-state seeds from log of ground-subtracted correlator."""
@@ -308,7 +309,9 @@ def excited_linear_seed_numpy(
     ground_curve = one_state_cosh(time_slices, ground_log_amp, ground_mass, nt_half)
     diff_samples = samples_time_boot - ground_curve[:, None]
 
-    candidate_intervals = build_intervals(0, end_time_excited, min_interval_length=2)
+    candidate_intervals = build_intervals(
+        start_time_index, end_time_excited, min_interval_length=2
+    )
     candidates: list[dict[str, Any]] = []
     for interval in candidate_intervals:
         fit_result = _fit_log_linear_numpy(time_slices, diff_samples, interval, nt_half)
@@ -420,38 +423,42 @@ def estimate_two_state_initial_guess(
         ground_log_amp=ground_log_amp,
         ground_mass=ground_mass,
         end_time_excited=end_time_excited,
+        start_time_index=start_time_index,
         nt_half=nt_half,
     )
 
-    excited_interval: np.ndarray | None = None
-    if excited_linear["seed"] is None:
-        excited_log_amp = float(ground_log_amp - 2.0)
-        excited_mass = float(ground_mass + 0.05 * abs(ground_mass) + 1e-4)
-        diagnostics["excited_fallback"] = True
-    else:
-        excited_log_amp = float(excited_linear["seed"]["log_amp"])
-        excited_mass = float(excited_linear["seed"]["mass"])
-        excited_interval = excited_linear["seed"]["interval"]
+    print(f"excited_linear candidates: {excited_linear['candidates']}")
+    print(f"excited_linear seed: {excited_linear['seed']}")
 
-    # Enforce physical ordering m2 > m1 for two-state initialization.
-    eps = 1e-6
-    if not np.isfinite(excited_mass) or excited_mass <= ground_mass:
-        excited_mass = float(ground_mass + max(0.05 * abs(ground_mass), eps))
-    mass_gap = float(max(excited_mass - ground_mass, eps))
+    # excited_interval: np.ndarray | None = None
+    # if excited_linear["seed"] is None:
+    #     excited_log_amp = float(ground_log_amp - 2.0)
+    #     excited_mass = float(ground_mass + 0.05 * abs(ground_mass) + 1e-4)
+    #     diagnostics["excited_fallback"] = True
+    # else:
+    #     excited_log_amp = float(excited_linear["seed"]["log_amp"])
+    #     excited_mass = float(excited_linear["seed"]["mass"])
+    #     excited_interval = excited_linear["seed"]["interval"]
 
-    return {
-        "ground_log_amp": float(ground_log_amp),
-        "ground_mass": float(ground_mass),
-        "excited_log_amp": float(excited_log_amp),
-        "excited_mass": float(excited_mass),
-        "mass_gap": mass_gap,
-        "ground_interval": (
-            None if ground_interval is None else ground_interval.tolist()
-        ),
-        "excited_interval": (
-            None if excited_interval is None else excited_interval.tolist()
-        ),
-        "end_time_ground": int(end_time_ground),
-        "end_time_excited": int(end_time_excited),
-        "diagnostics": diagnostics,
-    }
+    # # Enforce physical ordering m2 > m1 for two-state initialization.
+    # eps = 1e-6
+    # if not np.isfinite(excited_mass) or excited_mass <= ground_mass:
+    #     excited_mass = float(ground_mass + max(0.05 * abs(ground_mass), eps))
+    # mass_gap = float(max(excited_mass - ground_mass, eps))
+
+    # return {
+    #     "ground_log_amp": float(ground_log_amp),
+    #     "ground_mass": float(ground_mass),
+    #     "excited_log_amp": float(excited_log_amp),
+    #     "excited_mass": float(excited_mass),
+    #     "mass_gap": mass_gap,
+    #     "ground_interval": (
+    #         None if ground_interval is None else ground_interval.tolist()
+    #     ),
+    #     "excited_interval": (
+    #         None if excited_interval is None else excited_interval.tolist()
+    #     ),
+    #     "end_time_ground": int(end_time_ground),
+    #     "end_time_excited": int(end_time_excited),
+    #     "diagnostics": diagnostics,
+    # }
