@@ -321,15 +321,7 @@ def excited_linear_seed_numpy(
     if not candidates:
         return {"seed": None, "candidates": []}
 
-    # Keep the longest valid interval for a stable default excited-state seed.
-    selected = max(
-        candidates,
-        key=lambda item: (
-            item["interval_end"] - item["interval_start"],
-            -item["interval_start"],
-        ),
-    )
-    return {"seed": selected, "candidates": candidates}
+    return {"candidates": candidates}
 
 
 def estimate_two_state_initial_guess(
@@ -426,39 +418,3 @@ def estimate_two_state_initial_guess(
         start_time_index=start_time_index,
         nt_half=nt_half,
     )
-
-    print(f"excited_linear candidates: {excited_linear['candidates']}")
-    print(f"excited_linear seed: {excited_linear['seed']}")
-
-    # excited_interval: np.ndarray | None = None
-    # if excited_linear["seed"] is None:
-    #     excited_log_amp = float(ground_log_amp - 2.0)
-    #     excited_mass = float(ground_mass + 0.05 * abs(ground_mass) + 1e-4)
-    #     diagnostics["excited_fallback"] = True
-    # else:
-    #     excited_log_amp = float(excited_linear["seed"]["log_amp"])
-    #     excited_mass = float(excited_linear["seed"]["mass"])
-    #     excited_interval = excited_linear["seed"]["interval"]
-
-    # # Enforce physical ordering m2 > m1 for two-state initialization.
-    # eps = 1e-6
-    # if not np.isfinite(excited_mass) or excited_mass <= ground_mass:
-    #     excited_mass = float(ground_mass + max(0.05 * abs(ground_mass), eps))
-    # mass_gap = float(max(excited_mass - ground_mass, eps))
-
-    # return {
-    #     "ground_log_amp": float(ground_log_amp),
-    #     "ground_mass": float(ground_mass),
-    #     "excited_log_amp": float(excited_log_amp),
-    #     "excited_mass": float(excited_mass),
-    #     "mass_gap": mass_gap,
-    #     "ground_interval": (
-    #         None if ground_interval is None else ground_interval.tolist()
-    #     ),
-    #     "excited_interval": (
-    #         None if excited_interval is None else excited_interval.tolist()
-    #     ),
-    #     "end_time_ground": int(end_time_ground),
-    #     "end_time_excited": int(end_time_excited),
-    #     "diagnostics": diagnostics,
-    # }
