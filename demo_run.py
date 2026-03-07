@@ -79,13 +79,18 @@ def _normalize_interval_record(item: dict[str, Any]) -> dict[str, Any]:
     success = bool(item.get("two_state_fit_success", False))
     fit_obj = item.get("two_state_result") if success else None
 
+    # Extract and convert fields to native Python types for JSON serialization.
+    # "fit_result" contains the initial esitmation results from the two-state fit, which may include log amplitudes, masses, mass gap, redchi, etc.
+    # and the "seed" field contains the initial guess values for the ground state log amplitude and mass, as well as the excited state guess values, which are used to seed the two-state fit. The "interval" field contains the time indices of the interval used for the fit.
     return {
         "interval_start": int(item["interval_start"]),
         "interval_end": int(item["interval_end"]),
         "interval": list(item["interval"]),
         "seed": {
-            "local_ground_log_amp": float(item["local_ground_log_amp"]),
-            "local_ground_mass": float(item["local_ground_mass"]),
+            "local_ground_log_amp": float(
+                item["local_ground_log_amp"]
+            ),  # 单态拟合amp参数
+            "local_ground_mass": float(item["local_ground_mass"]),  # 单态拟合mass参数
             "guess_excited_log_amp": float(item["guess_excited_log_amp"]),
             "guess_mass_gap": float(item["guess_mass_gap"]),
         },
@@ -138,7 +143,9 @@ def _resolve_input_files(input_path: Path) -> list[Path]:
     if input_path.is_dir():
         files = sorted(input_path.glob("p2_*_bs.npy"))
         if not files:
-            raise ValueError(f"No files matching 'p2_*_bs.npy' found under: {input_path}")
+            raise ValueError(
+                f"No files matching 'p2_*_bs.npy' found under: {input_path}"
+            )
         return files
     raise ValueError(f"Input path does not exist: {input_path}")
 
