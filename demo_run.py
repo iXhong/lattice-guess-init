@@ -17,7 +17,7 @@ from typing import Any
 import numpy as np
 
 # Keep compatibility with current filename typo in src/.
-from src.initial_guess_full import estimate_two_state_initial_guess
+from guess_init.initial_guess_full import estimate_two_state_initial_guess
 
 
 P2_PATTERN = re.compile(r"(p2_\d+)")

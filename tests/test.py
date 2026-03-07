@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
 import numpy as np
-from src.initial_guess import (
+from guess_init.initial_guess import (
     compute_mean_and_err,
     build_intervals,
     find_ground_end_time,

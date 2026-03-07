@@ -1,7 +1,17 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "guess-init"
 version = "0.1.0"
-description = "Add your description here"
+description = "Initial-parameter estimation toolkit for lattice two-point correlator fits."
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "numpy",
+    "lmfit",
+]
+
+[tool.setuptools.packages.find]
+include = ["guess_init*", "src*"]

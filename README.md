@@ -4,12 +4,18 @@ Initial-parameter estimation toolkit for lattice two-point correlator fits.
 
 This project estimates robust one-state and two-state initial parameters from bootstrap samples with shape `(n_boot, n_time)`, and can persist interval-level results for downstream analysis pipelines.
 
+## Who this is for
+
+- You have bootstrap correlator arrays `(n_boot, n_time)`
+- You need stable initial parameters for one-state/two-state fits
+- You want reusable JSON artifacts for later fitting stages
+
 ## Features
 
-- Full interval-scan estimator in [`src/initial_guess_full.py`](src/initial_guess_full.py)
+- Full interval-scan estimator in [`guess_init/initial_guess_full.py`](guess_init/initial_guess_full.py)
 - CLI runner for single-file and batch processing in [`demo_run.py`](demo_run.py)
 - Structured JSON output (`all_intervals_results`) for future loading
-- Tiny loader utility in [`src/init_guess_loader.py`](src/init_guess_loader.py) that returns interval-wise one-state and two-state initial params
+- Tiny loader utility in [`guess_init/init_guess_loader.py`](guess_init/init_guess_loader.py) that returns interval-wise one-state and two-state initial params
 
 ## Installation
 
@@ -18,6 +24,7 @@ This project estimates robust one-state and two-state initial parameters from bo
 ```bash
 uv venv .venv
 UV_CACHE_DIR=.uv-cache uv pip install --python .venv/bin/python numpy lmfit pytest
+UV_CACHE_DIR=.uv-cache uv pip install --python .venv/bin/python -e .
 ```
 
 ### Reuse in another project (recommended)
@@ -80,7 +87,7 @@ Each `all_intervals_results` entry includes:
 Programmatic:
 
 ```python
-from src.init_guess_loader import load_interval_initial_params
+from guess_init.init_guess_loader import load_interval_initial_params
 
 result = load_interval_initial_params("data/processed/init_guess/p2_0_init_guess.json")
 interval = result["intervals"][0]
@@ -91,7 +98,7 @@ print(interval["two_state_init"])
 CLI:
 
 ```bash
-python src/init_guess_loader.py data/processed/init_guess/p2_0_init_guess.json --top-k 5
+python -m guess_init.init_guess_loader data/processed/init_guess/p2_0_init_guess.json --top-k 5
 ```
 
 ## Reusing in Other Projects
@@ -104,8 +111,19 @@ Recommended integration pattern:
 
 Minimal API entry points:
 
-- `estimate_two_state_initial_guess(...)` from `src.initial_guess_full`
-- `load_interval_initial_params(...)` from `src.init_guess_loader`
+- `estimate_two_state_initial_guess(...)` from `guess_init.initial_guess_full`
+- `load_interval_initial_params(...)` from `guess_init.init_guess_loader`
+
+Minimal estimator usage:
+
+```python
+import numpy as np
+from guess_init.initial_guess_full import estimate_two_state_initial_guess
+
+samples = np.load("p2_0_bs.npy")  # shape: (n_boot, n_time)
+result = estimate_two_state_initial_guess(samples)
+print(result["all_intervals_results"][0])
+```
 
 ## Development
 
@@ -119,3 +137,5 @@ UV_CACHE_DIR=.uv-cache uv run --python .venv/bin/python pytest -q
 
 - Current focus is robust initial-guess estimation and artifact persistence.
 - For ambiguous algorithm details, align with the C++ references under `reference/`.
+- `src.*` imports are deprecated compatibility shims.
+- Use `guess_init.*` now; `src.*` is planned to be removed after one release cycle.

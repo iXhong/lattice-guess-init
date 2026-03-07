@@ -8,9 +8,9 @@ from typing import Any
 
 import numpy as np
 
-# from src.initial_guess import estimate_two_state_initial_guess
-# from src.initial_guess_full import estimate_two_state_initial_guess
-from src.initail_guess_test import estimate_two_state_initial_guess
+# from guess_init.initial_guess import estimate_two_state_initial_guess
+# from guess_init.initial_guess_full import estimate_two_state_initial_guess
+from guess_init.initail_guess_test import estimate_two_state_initial_guess
 
 
 def load_bootstrap_array(input_path: Path, npz_key: str | None = None) -> np.ndarray:

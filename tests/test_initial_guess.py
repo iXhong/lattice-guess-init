@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from src.initial_guess import (
+from guess_init.initial_guess import (
     estimate_two_state_initial_guess,
     find_ground_end_time,
     one_state_cosh,
