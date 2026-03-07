@@ -1,37 +1,48 @@
-# guess_init
+# lattice-guess-init
 
-Initial-guess toolkit for two-state correlator fitting from bootstrap samples `(n_boot, n_time)`.
+Initial-parameter estimation toolkit for lattice two-point correlator fits.
 
-## What is implemented
+This project estimates robust one-state and two-state initial parameters from bootstrap samples with shape `(n_boot, n_time)`, and can persist interval-level results for downstream analysis pipelines.
 
-- `src/initial_guess_full.py`
-  - Full interval-scan initial-guess estimator (one-state + two-state preparation/fit flow).
-  - Main API: `estimate_two_state_initial_guess(samples_boot_time, ...)`.
+## Features
 
-- `demo_run.py`
-  - Runs estimator on one file or batch directory.
-  - Supports saving per-`p2` JSON for future pipeline loading.
+- Full interval-scan estimator in [`src/initial_guess_full.py`](src/initial_guess_full.py)
+- CLI runner for single-file and batch processing in [`demo_run.py`](demo_run.py)
+- Structured JSON output (`all_intervals_results`) for future loading
+- Tiny loader utility in [`src/init_guess_loader.py`](src/init_guess_loader.py) that returns interval-wise one-state and two-state initial params
 
-- `src/init_guess_loader.py`
-  - Tiny loader utility for saved JSON files.
-  - Returns interval-wise one-state and two-state **initial parameters** in a structured format.
+## Installation
 
-## Environment
+### Local development
 
 ```bash
 uv venv .venv
 UV_CACHE_DIR=.uv-cache uv pip install --python .venv/bin/python numpy lmfit pytest
 ```
 
-## Run estimator (demo_run)
+### Reuse in another project (recommended)
 
-### Single file
+Install from GitHub with a pinned tag/commit:
+
+```bash
+uv add "guess-init @ git+https://github.com/iXhong/lattice-guess-init.git@<tag-or-commit>"
+```
+
+Or with pip:
+
+```bash
+pip install "git+https://github.com/iXhong/lattice-guess-init.git@<tag-or-commit>"
+```
+
+## Quick Start
+
+### Run estimator on one file
 
 ```bash
 UV_CACHE_DIR=.uv-cache uv run --python .venv/bin/python demo_run.py data/p2_0_bs.npy --top-k 5
 ```
 
-### Batch directory (`p2_*_bs.npy`)
+### Batch run (`p2_*_bs.npy`)
 
 ```bash
 UV_CACHE_DIR=.uv-cache uv run --python .venv/bin/python demo_run.py data/processed/bs --top-k 3
@@ -43,45 +54,62 @@ UV_CACHE_DIR=.uv-cache uv run --python .venv/bin/python demo_run.py data/process
 UV_CACHE_DIR=.uv-cache uv run --python .venv/bin/python demo_run.py data/processed/bs --save --output-dir data/processed/init_guess
 ```
 
-Output mapping example:
-- `p2_0_bs.npy` -> `data/processed/init_guess/p2_0_init_guess.json`
+Example mapping:
+- `p2_0_bs.npy` -> `p2_0_init_guess.json`
 
-## Saved JSON structure (current)
+## JSON Output Schema
 
-Top-level fields:
+Each saved JSON contains:
+
 - `schema_version`
 - `unit` (`p2_id`, `input_file`, `output_file`, `created_at`)
-- `config` (run args)
-- `all_intervals_results` (full interval scan, always saved)
+- `config` (estimator runtime args)
+- `all_intervals_results` (always fully saved)
 
-Each `all_intervals_results` item is normalized as:
+Each `all_intervals_results` entry includes:
+
 - `interval_start`, `interval_end`, `interval`
 - `seed`:
   - `local_ground_log_amp`, `local_ground_mass`
   - `guess_excited_log_amp`, `guess_mass_gap`
 - `fit_status`
-- `fit_result` (full two-state fit object or `null`)
+- `fit_result` (full two-state fit result or `null`)
 
-## Load saved JSON (init_guess_loader)
+## Load Saved Results
 
-### Programmatic usage
+Programmatic:
 
 ```python
 from src.init_guess_loader import load_interval_initial_params
 
-data = load_interval_initial_params("data/processed/init_guess/p2_0_init_guess.json")
-# data["intervals"][i] contains:
-# - one_state_init: {log_amp, mass}
-# - two_state_init: {log_amp_1, mass_1, log_amp_2, mass_gap, mass_2}
+result = load_interval_initial_params("data/processed/init_guess/p2_0_init_guess.json")
+interval = result["intervals"][0]
+print(interval["one_state_init"])
+print(interval["two_state_init"])
 ```
 
-### CLI usage
+CLI:
 
 ```bash
 python src/init_guess_loader.py data/processed/init_guess/p2_0_init_guess.json --top-k 5
 ```
 
-## Tests
+## Reusing in Other Projects
+
+Recommended integration pattern:
+
+1. Install this package from GitHub with a pinned version.
+2. Use estimator API to generate per-`p2` JSON artifacts in your pipeline.
+3. Use loader API to consume interval-wise initial parameters in your fitter stage.
+
+Minimal API entry points:
+
+- `estimate_two_state_initial_guess(...)` from `src.initial_guess_full`
+- `load_interval_initial_params(...)` from `src.init_guess_loader`
+
+## Development
+
+Run tests:
 
 ```bash
 UV_CACHE_DIR=.uv-cache uv run --python .venv/bin/python pytest -q
@@ -89,5 +117,5 @@ UV_CACHE_DIR=.uv-cache uv run --python .venv/bin/python pytest -q
 
 ## Notes
 
-- Current focus is initial-guess estimation and structured persistence for future loading.
-- If algorithm details are uncertain, align with `reference/` C++ logic first.
+- Current focus is robust initial-guess estimation and artifact persistence.
+- For ambiguous algorithm details, align with the C++ references under `reference/`.
