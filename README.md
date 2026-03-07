@@ -133,6 +133,12 @@ Run tests:
 UV_CACHE_DIR=.uv-cache uv run --python .venv/bin/python pytest -q
 ```
 
+Run the cross-project synthetic smoke test used by CI:
+
+```bash
+UV_CACHE_DIR=.uv-cache uv run --python .venv/bin/python pytest -q tests/test_guess_init_smoke.py
+```
+
 ## Notes
 
 - Current focus is robust initial-guess estimation and artifact persistence.
