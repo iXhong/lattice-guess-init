@@ -1,0 +1,17 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Local tooling/cache artifacts
+.uv-cache/
+.pytest_cache/
+
+# Local data artifacts (kept outside public code repo)
+data/
