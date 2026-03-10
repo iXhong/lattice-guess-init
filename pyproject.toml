@@ -14,4 +14,10 @@ dependencies = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["guess_init*", "src*"]
+where = ["src"]
+include = ["guess_init*","run"]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.5",
+]
