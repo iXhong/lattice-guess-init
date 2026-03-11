@@ -15,3 +15,7 @@ wheels/
 
 # Local data artifacts (kept outside public code repo)
 data/
+
+reference/
+tests/
+
